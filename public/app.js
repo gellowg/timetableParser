@@ -2,7 +2,7 @@ document.getElementById('downloadCalendar').addEventListener('click', function()
     const student_id = document.getElementById('student_id').value;
     const bearer_token = document.getElementById('bearer').value;
     console.log("Pressed")
-    fetch('http://localhost:3000/getTTData', {
+    fetch('/getTTData', {
         method: 'GET',
         headers: {
             'Authorization': bearer_token,
