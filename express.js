@@ -20,7 +20,7 @@ app.get('/getTTData', (req, res) => {
   }
   var options = {
     'method': 'GET',
-    'url': `https://api.go4schools.com/web/stars/v1/timetable/student/academic-years/2025/school-id/209/user-type/1/student-id/${req.headers.student_id}/from-date/Mon,%2020%20Jan%202025%2000:00:00%20GMT/to-date/Fri,%2031%20Jan%202025%2023:59:59%20GMT`,
+    'url': `https://api.go4schools.com/web/stars/v1/timetable/student/academic-years/2025/school-id/209/user-type/1/student-id/${req.headers.student_id}/from-date/Mon,%2024%20Feb%202025%2000:00:00%20GMT/to-date/Fri,%207%20Mar%202025%2023:59:59%20GMT`,
     'headers': {
       'Authorization': `Bearer ${req.headers.authorization}`
     }
