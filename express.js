@@ -15,14 +15,16 @@ const port = process.env.PORT || 3000;
 // Trust proxy for Railway deployment
 app.set('trust proxy', process.env.TRUST_PROXY === 'true' || 1);
 
-// Security middleware
+// Security middleware - relaxed CSP for development
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", "https:", "data:"],
     },
   },
   hsts: {
@@ -33,7 +35,37 @@ app.use(helmet({
 }));
 
 // Static file serving - MUST be first after security middleware
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+  }
+}));
+
+// Explicit route for app.js as fallback
+app.get('/app.js', (req, res) => {
+  const fs = require('fs');
+  const filePath = path.join(__dirname, 'public', 'app.js');
+  
+  console.log(`[FALLBACK] Serving app.js from: ${filePath}`);
+  
+  if (!fs.existsSync(filePath)) {
+    console.error(`[FALLBACK] app.js not found at: ${filePath}`);
+    return res.status(404).json({ error: 'app.js not found' });
+  }
+  
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(content);
+  } catch (error) {
+    console.error('[FALLBACK] Error reading app.js:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Compression middleware
 app.use(compression());
@@ -131,7 +163,26 @@ app.get('/debug/check-static', (req, res) => {
   res.json({
     message: 'This route was reached, which means static middleware did not serve /app.js',
     timestamp: new Date().toISOString(),
-    warning: 'Static middleware might not be working properly'
+    warning: 'Static middleware might not be working properly',
+    testUrls: [
+      '/test.js - should work if static middleware is working',
+      '/app.js - should work if static middleware is working',
+      '/debug/files - check if files exist'
+    ]
+  });
+});
+
+// Debug route to test static file serving
+app.get('/debug/test-static', (req, res) => {
+  res.json({
+    message: 'Testing static file serving',
+    timestamp: new Date().toISOString(),
+    testFiles: [
+      '/test.js',
+      '/app.js',
+      '/.gitkeep'
+    ],
+    instructions: 'Try accessing these URLs directly to test static serving'
   });
 });
 
