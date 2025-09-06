@@ -158,31 +158,23 @@ function downloadCalendar() {
         .then(response => {
             console.log("API Response status:", response.status);
             if (!response.ok) {
-                return response.json().then(errorData => {
-                    console.error("API Error:", response.status, errorData);
-                    const errorMessage = errorData.error || 'Failed to fetch timetable data';
-                    const errorDetails = errorData.details || 'Please try again later.';
-                    return Promise.reject(new Error(errorMessage + ' - ' + errorDetails));
-                }).catch(() => {
-                    // Fallback if response is not JSON
+                return response.text().then(text => {
+                    console.error("API Error:", response.statusText, text);
                     let errorMessage = 'Failed to fetch timetable data';
-                    let errorDetails = 'Please try again later.';
+                    let errorDetails = '';
                     
-                    if (response.status === 429) {
-                        errorMessage = 'Too many requests';
-                        errorDetails = 'You have exceeded the rate limit. Please wait before trying again.';
-                    } else if (response.status === 400) {
-                        errorMessage = 'Invalid request';
-                        errorDetails = 'Please check your input and try again.';
+                    if (response.status === 400) {
+                        errorMessage = 'Invalid request parameters';
+                        errorDetails = 'Please check your Student ID and Bearer Token are correct.';
                     } else if (response.status === 401) {
                         errorMessage = 'Authentication failed';
-                        errorDetails = 'Your Bearer Token may be invalid or expired.';
+                        errorDetails = 'Your Bearer Token may be invalid or expired. Please check your credentials.';
                     } else if (response.status === 404) {
                         errorMessage = 'Student not found';
-                        errorDetails = 'The Student ID you entered was not found.';
+                        errorDetails = 'The Student ID you entered was not found. Please verify it is correct.';
                     } else if (response.status >= 500) {
                         errorMessage = 'Server error';
-                        errorDetails = 'The server is experiencing issues. Please try again later.';
+                        errorDetails = 'The school server is experiencing issues. Please try again later.';
                     }
                     
                     return Promise.reject(new Error(errorMessage + ' - ' + errorDetails));
@@ -241,21 +233,13 @@ function testConnection() {
                 showSuccess('Connection successful! Your credentials are valid.');
                 saveCredentials();
             } else {
-                return response.json().then(errorData => {
-                    const errorMessage = errorData.error || 'Connection failed';
-                    const errorDetails = errorData.details || 'Please check your credentials and try again.';
-                    showError(errorMessage, errorDetails);
-                }).catch(() => {
-                    let errorMessage = 'Connection failed';
-                    if (response.status === 401) {
-                        errorMessage = 'Invalid Bearer Token';
-                    } else if (response.status === 404) {
-                        errorMessage = 'Student ID not found';
-                    } else if (response.status === 429) {
-                        errorMessage = 'Too many requests';
-                    }
-                    showError(errorMessage, 'Please check your credentials and try again.');
-                });
+                let errorMessage = 'Connection failed';
+                if (response.status === 401) {
+                    errorMessage = 'Invalid Bearer Token';
+                } else if (response.status === 404) {
+                    errorMessage = 'Student ID not found';
+                }
+                showError(errorMessage, 'Please check your credentials and try again.');
             }
         })
         .catch(error => {
