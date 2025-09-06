@@ -85,7 +85,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
     // Remove nosniff header for static files to allow proper MIME type detection
     res.removeHeader('X-Content-Type-Options');
   },
-  fallthrough: false // Don't fall through to next middleware if file not found
+  fallthrough: true // Allow fallthrough to next middleware if file not found
 }));
 
 // Explicit route for app.js to ensure it works in production
@@ -510,7 +510,13 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.render('index');
+  try {
+    console.log('Rendering index page...');
+    res.render('index');
+  } catch (error) {
+    console.error('Error rendering index:', error);
+    res.status(500).json({ error: 'Failed to render page', details: error.message });
+  }
 });
 
 // Debug middleware to log all requests
@@ -694,11 +700,21 @@ app.use('*', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: 'An unexpected error occurred',
-    timestamp: new Date().toISOString()
-  });
+  if (isProduction) {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'An unexpected error occurred',
+      timestamp: new Date().toISOString()
+    });
+  } else {
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'An unexpected error occurred',
+      details: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 app.listen(port, () => {
