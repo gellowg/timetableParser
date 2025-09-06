@@ -74,26 +74,66 @@ app.set('views', path.join(__dirname, 'views'));
 // Static files middleware with proper headers
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
+    console.log('Serving static file:', filePath);
     // Ensure static files are served with proper content type
     if (filePath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript');
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
     }
     if (filePath.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css');
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
     }
     // Remove nosniff header for static files to allow proper MIME type detection
     res.removeHeader('X-Content-Type-Options');
-  }
+  },
+  fallthrough: false // Don't fall through to next middleware if file not found
 }));
 
-// Debug static file serving
-app.use((req, res, next) => {
-  if (req.url.startsWith('/app.js')) {
-    console.log('Request for app.js:', req.url);
-    console.log('Public directory exists:', require('fs').existsSync(path.join(__dirname, 'public')));
-    console.log('App.js exists:', require('fs').existsSync(path.join(__dirname, 'public', 'app.js')));
+// Explicit route for app.js to ensure it works in production
+app.get('/app.js', (req, res) => {
+  console.log('Explicit route for app.js called');
+  
+  // Try multiple possible paths
+  const possiblePaths = [
+    path.join(__dirname, 'public', 'app.js'),
+    path.join(__dirname, 'app.js'),
+    path.join(process.cwd(), 'public', 'app.js'),
+    path.join(process.cwd(), 'app.js')
+  ];
+  
+  console.log('Trying paths:', possiblePaths);
+  
+  for (const filePath of possiblePaths) {
+    console.log(`Checking: ${filePath} - exists: ${require('fs').existsSync(filePath)}`);
+    if (require('fs').existsSync(filePath)) {
+      console.log(`Serving app.js from: ${filePath}`);
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('X-Served-From', 'explicit-route');
+      return res.sendFile(filePath);
+    }
   }
-  next();
+  
+  // If file not found, try to read and serve the content directly
+  console.log('File not found, trying to read content directly');
+  try {
+    const fs = require('fs');
+    const content = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
+    console.log('Successfully read app.js content directly');
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('X-Served-From', 'direct-content');
+    return res.send(content);
+  } catch (error) {
+    console.error('Failed to read app.js content:', error);
+    res.status(404).json({
+      error: 'File not found',
+      message: 'app.js could not be located or read',
+      searchedPaths: possiblePaths,
+      currentDir: __dirname,
+      workingDir: process.cwd(),
+      errorDetails: error.message
+    });
+  }
 });
 
 // Middleware to handle protocol consistency
@@ -118,20 +158,10 @@ app.get('/', (req, res) => {
   res.render('index');
 });
 
-// Explicit route for app.js to ensure it's served correctly
-app.get('/app.js', (req, res) => {
-  const filePath = path.join(__dirname, 'public', 'app.js');
-  console.log('Serving app.js from:', filePath);
-  console.log('File exists:', require('fs').existsSync(filePath));
-  
-  res.setHeader('Content-Type', 'application/javascript');
-  res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-  res.sendFile(filePath, (err) => {
-    if (err) {
-      console.error('Error serving app.js:', err);
-      res.status(404).send('File not found');
-    }
-  });
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
 });
 
 // Input validation middleware
