@@ -73,16 +73,28 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Static files middleware with proper headers
 app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, path) => {
+  setHeaders: (res, filePath) => {
     // Ensure static files are served with proper content type
-    if (path.endsWith('.js')) {
+    if (filePath.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript');
     }
-    if (path.endsWith('.css')) {
+    if (filePath.endsWith('.css')) {
       res.setHeader('Content-Type', 'text/css');
     }
+    // Remove nosniff header for static files to allow proper MIME type detection
+    res.removeHeader('X-Content-Type-Options');
   }
 }));
+
+// Debug static file serving
+app.use((req, res, next) => {
+  if (req.url.startsWith('/app.js')) {
+    console.log('Request for app.js:', req.url);
+    console.log('Public directory exists:', require('fs').existsSync(path.join(__dirname, 'public')));
+    console.log('App.js exists:', require('fs').existsSync(path.join(__dirname, 'public', 'app.js')));
+  }
+  next();
+});
 
 // Middleware to handle protocol consistency
 app.use((req, res, next) => {
@@ -93,9 +105,34 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 app.get('/', (req, res) => {
   res.render('index');
-})
+});
+
+// Explicit route for app.js to ensure it's served correctly
+app.get('/app.js', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'app.js');
+  console.log('Serving app.js from:', filePath);
+  console.log('File exists:', require('fs').existsSync(filePath));
+  
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('Error serving app.js:', err);
+      res.status(404).send('File not found');
+    }
+  });
+});
 
 // Input validation middleware
 const validateTimetableRequest = [
@@ -259,6 +296,29 @@ app.post('/getTTData', timetableValidation, validateTimetableRequest, (req, res)
   }
 });
 
+// Catch-all handler for missing routes
+app.use('*', (req, res) => {
+  console.log('404 - Route not found:', req.originalUrl);
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.originalUrl} not found`,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: 'An unexpected error occurred',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.listen(port, () => {
-  console.log(`Proxy server running at http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Public directory: ${path.join(__dirname, 'public')}`);
+  console.log(`App.js exists: ${require('fs').existsSync(path.join(__dirname, 'public', 'app.js'))}`);
 });
