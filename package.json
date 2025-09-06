@@ -1,21 +1,38 @@
 {
-  "name": "timetableparse",
+  "name": "timetable-downloader",
   "version": "1.0.0",
-  "main": "public/app.js",
+  "main": "express.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node express.js",
+    "dev": "NODE_ENV=development node express.js",
+    "prod": "NODE_ENV=production node express.js"
   },
   "private": true,
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "dependencies": {
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "ejs": "^3.1.10",
     "express": "^4.21.0",
+    "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
     "ics": "^3.7.6",
+    "morgan": "^1.10.1",
     "request": "^2.88.2"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "keywords": [
+    "timetable",
+    "calendar",
+    "ics",
+    "student",
+    "education"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "description": "A secure web application for downloading student timetables as calendar files"
 }
