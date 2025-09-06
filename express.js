@@ -71,24 +71,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Static files middleware with proper headers
-app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, filePath) => {
-    console.log('Serving static file:', filePath);
-    // Ensure static files are served with proper content type
-    if (filePath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    }
-    if (filePath.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    }
-    // Remove nosniff header for static files to allow proper MIME type detection
-    res.removeHeader('X-Content-Type-Options');
-  },
-  fallthrough: true // Allow fallthrough to next middleware if file not found
-}));
-
-// Explicit route for app.js to ensure it works in production
+// Explicit route for app.js to ensure it works in production - MUST come before static middleware
 app.get('/app.js', (req, res) => {
   console.log('Explicit route for app.js called');
   
@@ -438,6 +421,23 @@ function mergeDateAndTime(date, time) {
   res.setHeader('X-Served-From', 'embedded-content');
   return res.send(embeddedContent);
 });
+
+// Static files middleware with proper headers - AFTER explicit routes
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    console.log('Serving static file:', filePath);
+    // Ensure static files are served with proper content type
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    }
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    }
+    // Remove nosniff header for static files to allow proper MIME type detection
+    res.removeHeader('X-Content-Type-Options');
+  },
+  fallthrough: true // Allow fallthrough to next middleware if file not found
+}));
 
 // Middleware to handle protocol consistency
 app.use((req, res, next) => {
