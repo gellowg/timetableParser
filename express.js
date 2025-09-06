@@ -15,18 +15,9 @@ const port = process.env.PORT || 3000;
 // Trust proxy for Railway deployment
 app.set('trust proxy', process.env.TRUST_PROXY === 'true' || 1);
 
-// Security middleware - relaxed CSP for development
+// Security middleware - basic security without CSP
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
-      fontSrc: ["'self'", "https:", "data:"],
-    },
-  },
+  contentSecurityPolicy: false, // Disable CSP completely
   hsts: {
     maxAge: 31536000,
     includeSubDomains: true,
