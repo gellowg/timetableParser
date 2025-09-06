@@ -38,6 +38,14 @@ app.use(compression());
 // Logging middleware
 app.use(morgan('combined'));
 
+// Debug middleware for production issues (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log(`Request: ${req.method} ${req.originalUrl} from ${req.ip}`);
+    next();
+  });
+}
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
@@ -65,11 +73,69 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
 
+// Static file serving with proper configuration for production
+const staticOptions = {
+  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0, // Cache for 1 day in production
+  etag: true,
+  lastModified: true,
+  index: false, // Don't serve index.html automatically
+  dotfiles: 'ignore', // Ignore dotfiles
+  setHeaders: (res, filePath) => {
+    // Set proper MIME types
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    } else if (filePath.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    }
+    
+    // Add CORS headers for static files
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    
+    // Add security headers
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  }
+};
+
+app.use(express.static(path.join(__dirname, 'public'), staticOptions));
+
+// Main route
 app.get('/', (req, res) => {
   res.render('index');
-})
+});
+
+// Explicit route for app.js to ensure it's served correctly
+app.get('/app.js', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'app.js');
+  
+  // Check if file exists
+  if (!require('fs').existsSync(filePath)) {
+    console.error(`app.js not found at: ${filePath}`);
+    return res.status(404).send('JavaScript file not found');
+  }
+  
+  res.sendFile(filePath, {
+    headers: {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': process.env.NODE_ENV === 'production' ? 'public, max-age=86400' : 'no-cache',
+      'Access-Control-Allow-Origin': '*'
+    }
+  }, (err) => {
+    if (err) {
+      console.error('Error serving app.js:', err);
+      res.status(500).send('Error serving JavaScript file');
+    }
+  });
+});
+
+// Alternative route for app.js (in case of routing issues)
+app.get('/public/app.js', (req, res) => {
+  res.redirect('/app.js');
+});
 
 // Input validation middleware for GET request with headers
 const validateTimetableRequest = (req, res, next) => {
@@ -238,12 +304,65 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Not found',
-    details: 'The requested resource was not found on this server.'
+// Debug endpoint to check file structure (only in development or for debugging)
+app.get('/debug/files', (req, res) => {
+  const fs = require('fs');
+  const publicPath = path.join(__dirname, 'public');
+  
+  try {
+    const files = fs.readdirSync(publicPath);
+    const appJsPath = path.join(publicPath, 'app.js');
+    const appJsStats = fs.existsSync(appJsPath) ? fs.statSync(appJsPath) : null;
+    
+    res.json({
+      publicPath,
+      files,
+      appJsExists: fs.existsSync(appJsPath),
+      appJsSize: appJsStats ? appJsStats.size : 0,
+      appJsModified: appJsStats ? appJsStats.mtime : null,
+      nodeEnv: process.env.NODE_ENV,
+      workingDirectory: process.cwd(),
+      __dirname: __dirname
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Production debug endpoint (simplified)
+app.get('/debug/production', (req, res) => {
+  const fs = require('fs');
+  const publicPath = path.join(__dirname, 'public');
+  
+  res.json({
+    status: 'ok',
+    appJsExists: fs.existsSync(path.join(publicPath, 'app.js')),
+    nodeEnv: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
   });
+});
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    error: 'API endpoint not found',
+    details: 'The requested API endpoint was not found on this server.'
+  });
+});
+
+// 404 handler for static files
+app.use('*', (req, res) => {
+  // Check if it's a static file request
+  if (req.originalUrl.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg)$/)) {
+    console.log(`Static file not found: ${req.originalUrl}`);
+    res.status(404).send('File not found');
+  } else {
+    // For non-static file requests, return JSON
+    res.status(404).json({
+      error: 'Not found',
+      details: 'The requested resource was not found on this server.'
+    });
+  }
 });
 
 // Global error handler
