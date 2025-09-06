@@ -38,6 +38,13 @@ app.use(compression());
 // Logging middleware
 app.use(morgan('combined'));
 
+// Debug middleware for production debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} from ${req.ip}`);
+  console.log(`Headers: ${JSON.stringify(req.headers, null, 2)}`);
+  next();
+});
+
 
 // Rate limiting
 const limiter = rateLimit({
@@ -73,6 +80,49 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Main route
 app.get('/', (req, res) => {
   res.render('index');
+});
+
+// Test endpoint to serve app.js directly
+app.get('/test-app.js', (req, res) => {
+  const fs = require('fs');
+  const filePath = path.join(__dirname, 'public', 'app.js');
+  
+  console.log(`Attempting to serve app.js from: ${filePath}`);
+  console.log(`File exists: ${fs.existsSync(filePath)}`);
+  
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      error: 'app.js not found',
+      filePath,
+      __dirname,
+      publicPath: path.join(__dirname, 'public'),
+      filesInPublic: fs.existsSync(path.join(__dirname, 'public')) ? fs.readdirSync(path.join(__dirname, 'public')) : 'public directory does not exist'
+    });
+  }
+  
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.send(content);
+  } catch (error) {
+    console.error('Error reading app.js:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test if static middleware is working
+app.get('/debug/static', (req, res) => {
+  res.json({
+    message: 'Static middleware test',
+    timestamp: new Date().toISOString(),
+    staticPath: path.join(__dirname, 'public'),
+    staticExists: require('fs').existsSync(path.join(__dirname, 'public')),
+    testUrls: [
+      '/app.js',
+      '/test-app.js',
+      '/debug/files'
+    ]
+  });
 });
 
 
@@ -243,28 +293,71 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Debug endpoint to check file structure (only in development or for debugging)
+// Comprehensive debug endpoint
 app.get('/debug/files', (req, res) => {
   const fs = require('fs');
   const publicPath = path.join(__dirname, 'public');
   
   try {
-    const files = fs.readdirSync(publicPath);
-    const appJsPath = path.join(publicPath, 'app.js');
-    const appJsStats = fs.existsSync(appJsPath) ? fs.statSync(appJsPath) : null;
+    // Check if public directory exists
+    const publicExists = fs.existsSync(publicPath);
+    let files = [];
+    let appJsExists = false;
+    let appJsSize = 0;
+    let appJsModified = null;
+    
+    if (publicExists) {
+      files = fs.readdirSync(publicPath);
+      const appJsPath = path.join(publicPath, 'app.js');
+      appJsExists = fs.existsSync(appJsPath);
+      
+      if (appJsExists) {
+        const stats = fs.statSync(appJsPath);
+        appJsSize = stats.size;
+        appJsModified = stats.mtime;
+      }
+    }
+    
+    // Check if we can read the file
+    let canReadAppJs = false;
+    let appJsContent = '';
+    if (appJsExists) {
+      try {
+        appJsContent = fs.readFileSync(path.join(publicPath, 'app.js'), 'utf8');
+        canReadAppJs = true;
+      } catch (readError) {
+        console.error('Error reading app.js:', readError);
+      }
+    }
     
     res.json({
+      timestamp: new Date().toISOString(),
       publicPath,
+      publicExists,
       files,
-      appJsExists: fs.existsSync(appJsPath),
-      appJsSize: appJsStats ? appJsStats.size : 0,
-      appJsModified: appJsStats ? appJsStats.mtime : null,
+      appJsExists,
+      appJsSize,
+      appJsModified,
+      canReadAppJs,
+      appJsContentLength: appJsContent.length,
+      appJsContentPreview: appJsContent.substring(0, 100) + '...',
       nodeEnv: process.env.NODE_ENV,
       workingDirectory: process.cwd(),
-      __dirname: __dirname
+      __dirname: __dirname,
+      processCwd: process.cwd(),
+      fileSystemRoot: '/',
+      allFilesInRoot: fs.readdirSync('/'),
+      allFilesInApp: fs.readdirSync(__dirname)
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Debug error:', error);
+    res.status(500).json({ 
+      error: error.message,
+      stack: error.stack,
+      publicPath,
+      __dirname,
+      workingDirectory: process.cwd()
+    });
   }
 });
 
