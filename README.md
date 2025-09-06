@@ -1,114 +1,86 @@
-# Timetable Downloader
+# Timetable Parser
 
-A secure web application for downloading student timetables as calendar files (.ics format).
+A secure, production-ready application that converts school timetables to calendar files (.ics format).
 
 ## Features
 
-- 🔒 **Secure**: Rate limiting, input validation, and security headers
-- 📅 **Automatic Date Range**: Detects academic year and sets appropriate date range
-- 💾 **Credential Memory**: Remembers your login details for convenience
-- 🎨 **Modern UI**: Clean interface with loading states and helpful tooltips
-- 🚀 **Production Ready**: Optimized for deployment on Railway
+- 🔒 **Secure**: Rate limiting, input validation, security headers
+- 🚀 **Fast**: Compression, optimized requests
+- 📱 **User-friendly**: Modern UI with tooltips and progress indicators
+- 🛡️ **Production-ready**: Error handling, logging, health checks
 
 ## Security Features
 
-- Rate limiting (10 requests per 15 minutes per IP)
+- Rate limiting (5 requests per 15 minutes in production)
 - Input validation and sanitization
-- Security headers (HSTS, CSP, X-Frame-Options)
-- HTTPS enforcement in production
+- Security headers (Helmet.js)
+- CORS protection
 - Request size limits
-- Timeout protection
+- Comprehensive error handling
 
 ## Local Development
 
-1. **Install dependencies:**
+1. Install dependencies:
    ```bash
    npm install
    ```
 
-2. **Create environment file:**
+2. Create environment file:
    ```bash
    cp .env.example .env
    ```
 
-3. **Start development server:**
+3. Start development server:
    ```bash
    npm run dev
    ```
 
-4. **Open in browser:**
-   ```
-   http://localhost:3000
-   ```
+## Railway Deployment
 
-## Production Deployment (Railway)
+1. Connect your GitHub repository to Railway
+2. Railway will automatically detect the Node.js app
+3. Set environment variables in Railway dashboard:
+   - `NODE_ENV=production`
+   - `RATE_LIMIT_MAX_REQUESTS=5`
+   - `TRUST_PROXY=true`
+   - `ALLOWED_ORIGINS=https://your-app.railway.app`
 
-1. **Connect to Railway:**
-   - Push your code to GitHub
-   - Connect your repository to Railway
-   - Railway will automatically detect the Node.js app
-
-2. **Set environment variables in Railway dashboard:**
-   ```
-   NODE_ENV=production
-   PORT=3000
-   RATE_LIMIT_WINDOW_MS=900000
-   RATE_LIMIT_MAX_REQUESTS=10
-   API_BASE_URL=https://api.go4schools.com
-   SCHOOL_ID=209
-   CORS_ORIGIN=*
-   LOG_LEVEL=info
-   ```
-
-3. **Deploy:**
-   - Railway will automatically build and deploy
-   - Your app will be available at the provided Railway URL
+4. Deploy! Railway will handle SSL automatically.
 
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NODE_ENV` | Environment (development/production) | `development` |
-| `PORT` | Server port | `3000` |
-| `RATE_LIMIT_WINDOW_MS` | Rate limit window in milliseconds | `900000` (15 min) |
-| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | `10` |
-| `API_BASE_URL` | External API base URL | `https://api.go4schools.com` |
-| `SCHOOL_ID` | School identifier | `209` |
-| `CORS_ORIGIN` | Allowed CORS origins | `*` |
-| `LOG_LEVEL` | Logging level | `info` |
+| `PORT` | Server port | 3000 |
+| `NODE_ENV` | Environment | development |
+| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | 10 |
+| `RATE_LIMIT_WINDOW_MS` | Rate limit window (ms) | 900000 |
+| `SCHOOL_ID` | School ID for API | 209 |
+| `API_BASE_URL` | External API base URL | go4schools.com |
+| `TRUST_PROXY` | Trust proxy headers | true |
+| `ALLOWED_ORIGINS` | CORS allowed origins | * (dev) |
 
 ## API Endpoints
 
-### POST `/getTTData`
-
-Downloads timetable data for a student.
-
-**Request Body:**
-```json
-{
-  "student_id": "string",
-  "bearer_token": "string", 
-  "start_date": "YYYY-MM-DD",
-  "end_date": "YYYY-MM-DD"
-}
-```
-
-**Response:**
-```json
-{
-  "student_timetable": [...],
-  "settings": {...}
-}
-```
+- `GET /` - Main application
+- `GET /getTTData` - Fetch timetable data
+- `GET /health` - Health check
 
 ## Security Considerations
 
 - All inputs are validated and sanitized
 - Rate limiting prevents abuse
 - Security headers protect against common attacks
-- HTTPS is enforced in production
-- Sensitive data is not logged
+- Error messages don't leak sensitive information
+- Request timeouts prevent hanging connections
+
+## Monitoring
+
+- Health check endpoint: `/health`
+- Structured logging with Morgan
+- Error tracking and monitoring ready
+- Uptime and performance metrics available
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT

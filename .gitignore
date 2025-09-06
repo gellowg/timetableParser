@@ -1,9 +1,19 @@
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
+.env.*
+
 # Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
+package-lock.json
+yarn.lock
 
 # Runtime data
 pids
@@ -18,23 +28,20 @@ coverage/
 # nyc test coverage
 .nyc_output
 
-# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+# Grunt intermediate storage
 .grunt
 
-# Bower dependency directory (https://bower.io/)
+# Bower dependency directory
 bower_components
 
 # node-waf configuration
 .lock-wscript
 
-# Compiled binary addons (https://nodejs.org/api/addons.html)
+# Compiled binary addons
 build/Release
 
 # Dependency directories
 jspm_packages/
-
-# TypeScript v1 declaration files
-typings/
 
 # TypeScript cache
 *.tsbuildinfo
@@ -61,10 +68,9 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
-.env.*
+.env.backup
 
-# parcel-bundler cache (https://parceljs.org/)
+# parcel-bundler cache
 .cache
 .parcel-cache
 
@@ -120,11 +126,23 @@ build/Release
 node_modules/
 jspm_packages/
 
+# TypeScript v1 declaration files
+typings/
+
+# TypeScript cache
+*.tsbuildinfo
+
 # Optional npm cache directory
 .npm
 
 # Optional eslint cache
 .eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
 
 # Optional REPL history
 .node_repl_history
@@ -135,25 +153,39 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variable files
+# dotenv environment variables file
 .env
-.env.*
+.env.test
+.env.production
+.env.local
+.env.development
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
 
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
+# Next.js build output
+.next
 
-# yarn v2
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
+# Nuxt.js build / generate output
+.nuxt
+dist
 
-# IDEs and editors
+# Gatsby files
+.cache/
+# Comment in the public line in if your project uses Gatsby and not Next.js
+# https://nextjs.org/blog/next-9-1#public-directory-support
+# public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
 .vscode/
 .idea/
 *.swp
@@ -172,52 +204,64 @@ Thumbs.db
 # Railway
 .railway/
 
-# Build outputs
-dist/
-build/
-
-# Test coverage
-coverage/
-
-# Temporary files
-*.tmp
-*.temp
-
-# Database files
-*.sqlite
-*.sqlite3
-*.db
-
-# Backup files
-*.bak
-*.backup
-
-# Archive files
-*.zip
-*.tar.gz
-*.rar
-
-# Local configuration files
-config/local.js
-config/local.json
-
-# PM2 process files
-ecosystem.config.js
+# PM2
+.pm2/
 
 # Docker
 .dockerignore
 Dockerfile
 docker-compose.yml
-docker-compose.override.yml
+docker-compose.yaml
 
-# Terraform
-*.tfstate
-*.tfstate.*
-.terraform/
+# Backup files
+*.backup
+*.bak
+*.tmp
 
-# Kubernetes
-*.kubeconfig
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
-# Local development
-.local/
-local/
+# Certificate files
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Local configuration files
+config/local.js
+config/local.json
+config/local.yml
+config/local.yaml
+
+# Test files
+test-results/
+coverage/
+.nyc_output/
+
+# Build artifacts
+build/
+dist/
+out/
+
+# IDE files
+*.sublime-project
+*.sublime-workspace
+.vscode/
+.idea/
+*.iml
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
