@@ -91,61 +91,10 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // Explicit route for app.js to ensure it works in production
 app.get('/app.js', (req, res) => {
   console.log('Explicit route for app.js called');
-  console.log('Current directory structure:');
-  console.log('__dirname:', __dirname);
-  console.log('process.cwd():', process.cwd());
   
-  // List directory contents for debugging
-  try {
-    const fs = require('fs');
-    console.log('Contents of __dirname:', fs.readdirSync(__dirname));
-    console.log('Contents of process.cwd():', fs.readdirSync(process.cwd()));
-    if (fs.existsSync(path.join(__dirname, 'public'))) {
-      console.log('Contents of public directory:', fs.readdirSync(path.join(__dirname, 'public')));
-    }
-  } catch (err) {
-    console.log('Error listing directories:', err.message);
-  }
-  
-  // Try multiple possible paths
-  const possiblePaths = [
-    path.join(__dirname, 'public', 'app.js'),
-    path.join(__dirname, 'app.js'),
-    path.join(process.cwd(), 'public', 'app.js'),
-    path.join(process.cwd(), 'app.js'),
-    '/app/public/app.js',
-    '/app/app.js'
-  ];
-  
-  console.log('Trying paths:', possiblePaths);
-  
-  for (const filePath of possiblePaths) {
-    console.log(`Checking: ${filePath} - exists: ${require('fs').existsSync(filePath)}`);
-    if (require('fs').existsSync(filePath)) {
-      console.log(`Serving app.js from: ${filePath}`);
-      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, max-age=3600');
-      res.setHeader('X-Served-From', 'explicit-route');
-      return res.sendFile(filePath);
-    }
-  }
-  
-  // If file not found, try to read and serve the content directly
-  console.log('File not found, trying to read content directly');
-  try {
-    const fs = require('fs');
-    const content = fs.readFileSync(path.join(__dirname, 'public', 'app.js'), 'utf8');
-    console.log('Successfully read app.js content directly');
-    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.setHeader('X-Served-From', 'direct-content');
-    return res.send(content);
-  } catch (error) {
-    console.error('Failed to read app.js content:', error);
-    
-    // Last resort: serve the actual app.js content embedded in the server
-    console.log('Serving embedded JavaScript content');
-    const embeddedContent = `// Global variables to store the date range
+  // Always serve the embedded content in production to guarantee it works
+  console.log('Serving embedded JavaScript content for production');
+  const embeddedContent = `// Global variables to store the date range
 let startDate, endDate, academicYear;
 
 // Set default dates when page loads
@@ -483,12 +432,11 @@ function mergeDateAndTime(date, time) {
   datetime.setHours(parseInt(time.split(":")[0]), parseInt(time.split(":")[1]))
   return \`\${datetime.toISOString().replace(/[-:]/g, '').split('.')[0]}Z\`;
 }`;
-    
-    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.setHeader('X-Served-From', 'embedded-content');
-    return res.send(embeddedContent);
-  }
+  
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('X-Served-From', 'embedded-content');
+  return res.send(embeddedContent);
 });
 
 // Middleware to handle protocol consistency
