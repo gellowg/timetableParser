@@ -5,8 +5,7 @@
   "scripts": {
     "start": "node express.js",
     "dev": "NODE_ENV=development node express.js",
-    "prod": "NODE_ENV=production node express.js",
-    "build": "node build.js"
+    "prod": "NODE_ENV=production node express.js"
   },
   "private": true,
   "engines": {
