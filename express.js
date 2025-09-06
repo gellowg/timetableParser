@@ -32,6 +32,9 @@ app.use(helmet({
   }
 }));
 
+// Static file serving - MUST be first after security middleware
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Compression middleware
 app.use(compression());
 
@@ -44,7 +47,6 @@ app.use((req, res, next) => {
   console.log(`Headers: ${JSON.stringify(req.headers, null, 2)}`);
   next();
 });
-
 
 // Rate limiting
 const limiter = rateLimit({
@@ -73,9 +75,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
-// Static file serving - simple and working configuration
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Main route
 app.get('/', (req, res) => {
@@ -121,7 +120,18 @@ app.get('/debug/static', (req, res) => {
       '/app.js',
       '/test-app.js',
       '/debug/files'
-    ]
+    ],
+    middlewareOrder: 'Static middleware should be first after security'
+  });
+});
+
+// Test route to check if static files are being served
+app.get('/debug/check-static', (req, res) => {
+  // This should not be reached if static middleware is working for /app.js
+  res.json({
+    message: 'This route was reached, which means static middleware did not serve /app.js',
+    timestamp: new Date().toISOString(),
+    warning: 'Static middleware might not be working properly'
   });
 });
 
