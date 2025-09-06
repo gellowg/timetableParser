@@ -3,15 +3,41 @@ const cors = require('cors');
 const request = require('request');
 const app = express();
 const path = require('path');
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve static files from the public directory
+const publicPath = path.join(__dirname, 'public');
+console.log('Serving static files from:', publicPath);
+app.use(express.static(publicPath));
+
+// Add a specific route for app.js to debug
+app.get('/app.js', (req, res) => {
+  console.log('Request for app.js received');
+  res.sendFile(path.join(publicPath, 'app.js'));
+});
+
 app.use(cors());
+
+// Log all requests for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
 
 app.get('/', (req, res) => {
   res.render('index');
+})
+
+// Test route to verify static files are working
+app.get('/test-static', (req, res) => {
+  res.json({
+    publicPath: publicPath,
+    appJsExists: require('fs').existsSync(path.join(publicPath, 'app.js')),
+    filesInPublic: require('fs').readdirSync(publicPath)
+  });
 })
 
 app.get('/getTTData', (req, res) => {
@@ -95,6 +121,15 @@ app.get('/getTTData', (req, res) => {
   })
 });
 
+// Catch-all handler for missing routes
+app.use((req, res) => {
+  console.log(`404 - Route not found: ${req.url}`);
+  res.status(404).send('Route not found');
+});
+
 app.listen(port, () => {
   console.log(`Proxy server running at http://localhost:${port}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Public directory exists: ${require('fs').existsSync(publicPath)}`);
+  console.log(`app.js exists: ${require('fs').existsSync(path.join(publicPath, 'app.js'))}`);
 });
